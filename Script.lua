@@ -1,118 +1,187 @@
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
-local mouse = player:GetMouse()
-local StarterGui = game:GetService("StarterGui")
-local TweenService = game:GetService("TweenService")
+local itensBalao = {
+WaterBalloon2024 = true,
+SnowballToy2020 = true,
+IceCream = true
+}
 
--- ⚙️ Configurações
-local WHITE_CROSSHAIR = "rbxassetid://79963539800097"
-local TARGET_TOOL_NAME = "Gun" -- Nome da Tool que ativa o sistema
-local ATIVADO = false -- Inicia desativado até a Tool ser equipada
+local function aplicarSistema(character)
+local humanoid = character:WaitForChild("Humanoid")
+local rootPart = character:WaitForChild("HumanoidRootPart")
 
--- Variáveis de arrasto
-local arrastando = false
-local diferenca = Vector2.new()
-
--- 🛡️ Função para criar UI (não será destruída no respawn)
-local function criarUI()
--- Remove UI antiga se existir
-if player.PlayerGui:FindFirstChild("ControleCrosshair") then
-player.PlayerGui:FindFirstChild("ControleCrosshair"):Destroy()
+if character:FindFirstChild("GlitchPart") then
+character.GlitchPart:Destroy()
 end
 
-local TelaUI = Instance.new("ScreenGui")
-TelaUI.Name = "ControleCrosshair"
-TelaUI.Parent = player.PlayerGui
-TelaUI.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-TelaUI.ResetOnSpawn = false -- 🔑 IMPORTA NÃO DESTRUIR NO RESPAWN/MORRER
+local glitchPart = Instance.new("Part")
+glitchPart.Name = "GlitchPart"
+glitchPart.Size = Vector3.new(2, 2, 2)
+glitchPart.Transparency = 1
+glitchPart.CanCollide = false
+glitchPart.CanTouch = false
+glitchPart.CanQuery = false
+glitchPart.Parent = character
 
-local Botao = Instance.new("TextButton")
-Botao.Name = "BotaoToggle"
-Botao.Size = UDim2.new(0, 130, 0, 45)
-Botao.Position = UDim2.new(0.82, 0, 0.06, 0) -- Posição inicial
-Botao.BackgroundColor3 = Color3.new(0.8, 0.15, 0.15)
-Botao.TextColor3 = Color3.new(1, 1, 1)
-Botao.Font = Enum.Font.GothamBold
-Botao.TextScaled = true
-Botao.Text = "DESATIVADO"
-Botao.ZIndex = 10
-Botao.Parent = TelaUI
+local weld = Instance.new("Weld")
+weld.Part0 = rootPart
+weld.Part1 = glitchPart
+weld.Parent = glitchPart
 
--- ✅ SISTEMA DE ARRASTAR/MOVER O BOTÃO
-Botao.InputBegan:Connect(function(input)
-if input.UserInputType == Enum.UserInputType.MouseButton1 then
-arrastando = true
-local posMouse = Vector2.new(mouse.X, mouse.Y)
-diferenca = posMouse - Vector2.new(Botao.AbsolutePosition.X, Botao.AbsolutePosition.Y)
-input.Changed:Wait()
-arrastando = false
+local function setOffset(z)
+weld.C0 = CFrame.new(0, 0, z)
+end
+
+local emoteAtual = nil
+local efeitoAtivo = false
+local offsetAtual = 0
+local toolAtual = nil
+local modoEscalada = false
+local aguardandoMudancaTool = false
+local terminouComTool = false
+local offsetTravado = false
+
+local emotes = {
+["http://www.roblox.com/asset/?id=15609995579"] = "normal",
+["rbxassetid://15609995579"] = "normal",
+["rbxassetid://107481557610007"] = "forte"
+}
+
+local function ativar(offset)
+efeitoAtivo = true
+offsetAtual = offset
+glitchPart.Transparency = 1
+setOffset(offset)
+end
+
+local function desativar()
+efeitoAtivo = false
+modoEscalada = false
+offsetAtual = 0
+aguardandoMudancaTool = false
+terminouComTool = false
+glitchPart.Transparency = 1
+setOffset(0)
+end
+
+humanoid.AnimationPlayed:Connect(function(track)
+if track.Animation then
+local tipo = emotes[track.Animation.AnimationId]
+
+if tipo then
+emoteAtual = tipo
+offsetAtual = 0
+offsetTravado = false
+aguardandoMudancaTool = false
+terminouComTool = false
+
+track.Stopped:Connect(function()
+emoteAtual = nil
+aguardandoMudancaTool = true
+terminouComTool = toolAtual ~= nil
+end)
+end
 end
 end)
 
-Botao.InputChanged:Connect(function(input)
-if arrastando and input.UserInputType == Enum.UserInputType.MouseMovement then
-local posNova = Vector2.new(mouse.X, mouse.Y) - diferenca
-Botao.Position = UDim2.new(0, posNova.X, 0, posNova.Y)
+character.ChildRemoved:Connect(function(obj)
+
+if itensBalao[obj.Name] then
+
+if emoteAtual == "normal" then
+offsetAtual = 10
+offsetTravado = true
+
+elseif emoteAtual == "forte" then
+offsetAtual = 12
+offsetTravado = true
+end
+
+if efeitoAtivo then
+setOffset(offsetAtual)
+end
+end
+
+if obj:IsA("Tool") then
+
+if obj == toolAtual then
+toolAtual = nil
+
+if aguardandoMudancaTool and terminouComTool then
+aguardandoMudancaTool = false
+terminouComTool = false
+desativar()
+
+elseif not emoteAtual and not itensBalao[obj.Name] then
+desativar()
+end
+end
 end
 end)
 
-return Botao
+character.ChildAdded:Connect(function(obj)
+
+if obj:IsA("Tool") then
+
+toolAtual = obj
+
+if aguardandoMudancaTool and not terminouComTool then
+aguardandoMudancaTool = false
+desativar()
+return
 end
 
--- Cria a interface
-local Botao = criarUI()
+local escalando =
+humanoid:GetState() == Enum.HumanoidStateType.Climbing
 
--- 🔧 Atualiza a interface e a mira
-local function atualizarEstado(ativo)
-ATIVADO = ativo
-if ATIVADO then
-Botao.BackgroundColor3 = Color3.new(0.15, 0.75, 0.25)
-Botao.Text = "ATIVADO"
-mouse.Icon = WHITE_CROSSHAIR
+if escalando then
+
+modoEscalada = true
+efeitoAtivo = true
+setOffset(3.7)
+
+elseif emoteAtual == "normal" then
+
+if offsetAtual > 0 then
+ativar(offsetAtual)
 else
-Botao.BackgroundColor3 = Color3.new(0.8, 0.15, 0.15)
-Botao.Text = "DESATIVADO"
-mouse.Icon = ""
-end
+ativar(7.9)
 end
 
--- 🎯 Monitoramento da Tool "Gun"
-local function monitorarTool(tool)
-if not tool:IsA("Tool") or tool.Name ~= TARGET_TOOL_NAME then return end
+elseif emoteAtual == "forte" then
 
--- Evita reconectar a mesma ferramenta
-if tool:GetAttribute("CrosshairConectado") then return end
-tool:SetAttribute("CrosshairConectado", true)
+if offsetAtual > 0 then
+ativar(offsetAtual)
+else
+ativar(11)
+end
 
-tool.Equipped:Connect(function()
-atualizarEstado(true)
+end
+end
 end)
 
-tool.Unequipped:Connect(function()
-atualizarEstado(false)
+task.spawn(function()
+
+while character.Parent do
+
+task.wait(0.05)
+
+if efeitoAtivo then
+
+if modoEscalada then
+setOffset(3.7)
+else
+setOffset(offsetAtual)
+end
+
+end
+end
 end)
+
 end
 
--- 🔄 Lógica de carregamento do personagem
-local function onCharacterAdded(character)
-atualizarEstado(false) -- Garante reset ao renascer
-
--- Conecta ferramentas já presentes no personagem (equipadas)
-for _, child in ipairs(character:GetChildren()) do
-monitorarTool(child)
-end
-character.ChildAdded:Connect(monitorarTool)
-
--- Conecta ferramentas presentes na Mochila
-local backpack = player:WaitForChild("Backpack")
-for _, tool in ipairs(backpack:GetChildren()) do
-monitorarTool(tool)
-end
-backpack.ChildAdded:Connect(monitorarTool)
-end
-
--- Inicialização
 if player.Character then
-task.spawn(onCharacterAdded, player.Character)
+aplicarSistema(player.Character)
 end
-player.CharacterAdded:Connect(onCharacterAdded)
+
+player.CharacterAdded:Connect(aplicarSistema)
