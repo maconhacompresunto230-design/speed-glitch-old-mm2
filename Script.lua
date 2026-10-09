@@ -89,11 +89,11 @@ character.ChildRemoved:Connect(function(obj)
 if itensBalao[obj.Name] then
 
 if emoteAtual == "normal" then
-offsetAtual = 12.5
+offsetAtual = 13.5
 offsetTravado = true
 
 elseif emoteAtual == "forte" then
-offsetAtual = 15
+offsetAtual = 16
 offsetTravado = true
 end
 
@@ -138,14 +138,14 @@ if escalando then
 
 modoEscalada = true
 efeitoAtivo = true
-setOffset(6.5)
+setOffset(8.5)
 
 elseif emoteAtual == "normal" then
 
 if offsetAtual > 0 then
 ativar(offsetAtual)
 else
-ativar(9.1)
+ativar(9.5)
 end
 
 elseif emoteAtual == "forte" then
@@ -153,7 +153,7 @@ elseif emoteAtual == "forte" then
 if offsetAtual > 0 then
 ativar(offsetAtual)
 else
-ativar(12.5)
+ativar(13.5)
 end
 
 end
@@ -169,7 +169,7 @@ task.wait(0.05)
 if efeitoAtivo then
 
 if modoEscalada then
-setOffset(8.8)
+setOffset(10)
 else
 setOffset(offsetAtual)
 end
