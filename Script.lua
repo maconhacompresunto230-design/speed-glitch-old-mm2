@@ -89,7 +89,7 @@ character.ChildRemoved:Connect(function(obj)
 if itensBalao[obj.Name] then
 
 if emoteAtual == "normal" then
-offsetAtual = 13.5
+offsetAtual = 15
 offsetTravado = true
 
 elseif emoteAtual == "forte" then
